@@ -1,4 +1,7 @@
-**/*.txt
+
 *.ipynb_checkpoints
 data
 .idea
+checkpoints
+
+__pycache__
