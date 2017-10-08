@@ -22,8 +22,7 @@ matplotlib
 
 ### スクレイピング
 
-```python
-nyker-goto ~
+```ruby
 $ ruby scrapter.rb
 ```
 
