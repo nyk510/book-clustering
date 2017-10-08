@@ -52,10 +52,10 @@ class LDATrainer(object):
                                 columns=["probability"])
             df_i.plot(kind="barh", ax=ax1)
             cls_prob = lda_model.alpha[topic_id]
-            ax1.set_title("クラスタ{topic_id} クラスタ選択確率{cls_prob:.3f}".format(**locals()))
-            ax1.set_xlabel("確率(%)")
+            ax1.set_title("トピック選択確率{cls_prob:.3f}".format(**locals()))
+            ax1.set_xlabel("確率")
             fig.tight_layout()
-            fname = "cluster_{0}.png".format(topic_id)
+            fname = "topic_{0}.png".format(topic_id)
             fpath = os.path.join(save_to_dir, fname)
             fig.savefig(fpath, dpi=150)
 
