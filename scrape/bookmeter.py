@@ -13,7 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 from joblib import Parallel, delayed
 from tqdm import tqdm
-
+from time import sleep
 from .settings import OUTPUT_DIR
 from .utils import get_logger
 
@@ -136,6 +136,7 @@ def fetch_reading_logs(user_id):
         res = requests.get(url, params=dict(page=page))
         logger.info(res.url + "\tpage: {}".format(page))
         soup = BeautifulSoup(res.text, "lxml")
+        sleep(.5)
         dates = [div.text for div in soup.find_all("div", class_="detail__date")]
         authors = [ul.find("a") for ul in soup.find_all("ul", class_="detail__authors")]
         titles = [ul.find("a") for ul in soup.find_all(class_="detail__title")]
