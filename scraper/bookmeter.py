@@ -6,6 +6,7 @@ book meter から読書記録をスクレイピングするモジュール
 import json
 import os
 from collections import namedtuple
+from time import sleep
 
 import numpy as np
 import pandas as pd
@@ -13,8 +14,8 @@ import requests
 from bs4 import BeautifulSoup
 from joblib import Parallel, delayed
 from tqdm import tqdm
-from time import sleep
-from .settings import OUTPUT_DIR
+
+from .settings import OUTPUT_DIR, request_distance
 from .utils import get_logger
 
 __author__ = "nyk510"
@@ -79,6 +80,7 @@ def fetch_communities(page=1):
     :rtype dict
     """
     res = requests.get("https://bookmeter.com/communities?filter=none&sort=member_count", params=dict(page=page))
+    sleep(request_distance)
     soup = BeautifulSoup(res.text, "lxml")
     community_data = json.loads(soup.find("p").text)
     return community_data
@@ -95,12 +97,13 @@ def fetch_users(community_url):
     members_url = os.path.join(community_url, "members")
 
     res = requests.get(os.path.join(community_url, "members"), params=dict(page=1))
-
+    sleep(request_distance)
     soup = BeautifulSoup(res.text, "lxml")
     pages = get_max_pages(soup)
 
     def fetch_user_ids(url, page=1):
         res = requests.get(url, params=dict(page=page))
+        logger.info("url: {}".format(url))
         soup = BeautifulSoup(res.text, "lxml")
         user_doms = [div.find("a") for div in soup.find_all(class_="item__username")]
 
@@ -128,15 +131,16 @@ def fetch_reading_logs(user_id):
     """
     url = BASE_URL + "/users/{user_id}/books/read".format(**locals())
     res = requests.get(url, params=dict(page=1))
+    sleep(request_distance)
     soup = BeautifulSoup(res.text, "lxml")
     max_pages = get_max_pages(soup)
     logger.info("max pages\t{}".format(max_pages))
 
     for page in range(max_pages):
         res = requests.get(url, params=dict(page=page))
+        sleep(request_distance)
         logger.info(res.url + "\tpage: {}".format(page))
         soup = BeautifulSoup(res.text, "lxml")
-        sleep(.5)
         dates = [div.text for div in soup.find_all("div", class_="detail__date")]
         authors = [ul.find("a") for ul in soup.find_all("ul", class_="detail__authors")]
         titles = [ul.find("a") for ul in soup.find_all(class_="detail__title")]
@@ -150,13 +154,13 @@ def fetch_reading_logs(user_id):
             yield read_log, book, author
 
 
-def run_fetch_logs(num_communities=5, force=False):
+def run_fetch_logs(num_communities=5, start=1, force=False):
     user_ids = []
     logger.info("start fetch community data")
-    for page in tqdm(range(num_communities), total=num_communities):
+    for page in range(start, start + num_communities):
         community_data = fetch_communities(page)
         urls = [BASE_URL + "/" + community["path"] for community in community_data["resources"]]
-        user_id_arrays = Parallel(n_jobs=5)(delayed(fetch_users)(url) for url in urls)
+        user_id_arrays = Parallel(n_jobs=5, verbose=1)(delayed(fetch_users)(url) for url in urls)
         for arr in user_id_arrays:
             user_ids.extend(arr)
 
