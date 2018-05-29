@@ -17,4 +17,4 @@ def get_arguments():
 if __name__ == '__main__':
     args = get_arguments()
     print(args)
-    run_fetch_logs(num_communities=args.num_communities)
+    run_fetch_logs(num_communities=args.num_communities, start=args.start)

@@ -158,6 +158,7 @@ def run_fetch_logs(num_communities=5, start=1, force=False):
     user_ids = []
     logger.info("start fetch community data")
     for page in range(start, start + num_communities):
+        logger.info(page)
         community_data = fetch_communities(page)
         urls = [BASE_URL + "/" + community["path"] for community in community_data["resources"]]
         user_id_arrays = Parallel(n_jobs=5, verbose=1)(delayed(fetch_users)(url) for url in urls)
