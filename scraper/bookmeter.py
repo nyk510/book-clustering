@@ -7,6 +7,7 @@ import json
 import os
 from collections import namedtuple
 from time import sleep
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -23,8 +24,8 @@ __author__ = "nyk510"
 BASE_URL = "https://bookmeter.com"
 logger = get_logger(__name__)
 
-reading_log_record = namedtuple("reading_log", ("book_id", "author_id", "read_date", "user_id"))
-book_record = namedtuple("book", ("id", "title"))
+reading_log_record = namedtuple("reading_log", ("book_id", "read_date", "user_id"))
+book_record = namedtuple("book", ("id", "title", "author_id"))
 author_record = namedtuple("author", ("id", "name"))
 
 
@@ -103,7 +104,7 @@ def fetch_users(community_url):
 
     def fetch_user_ids(url, page=1):
         res = requests.get(url, params=dict(page=page))
-        logger.info("url: {}".format(url))
+        logger.info("url:{} - page:{}/{}".format(url, page, pages))
         soup = BeautifulSoup(res.text, "lxml")
         user_doms = [div.find("a") for div in soup.find_all(class_="item__username")]
 
@@ -115,7 +116,7 @@ def fetch_users(community_url):
         return user_ids
 
     user_ids = []
-    for page in tqdm(range(pages), total=pages):
+    for page in range(1, pages + 1):
         uids = fetch_user_ids(members_url, page)
         user_ids.extend(uids)
     return user_ids
@@ -148,8 +149,8 @@ def fetch_reading_logs(user_id):
         for author, title, date in zip(authors, titles, dates):
             author_id = author.get_attribute_list("href")[0].split("=")[-1]
             book_id = title.get_attribute_list("href")[0].split("/")[-1]
-            read_log = reading_log_record(book_id=book_id, author_id=author_id, user_id=user_id, read_date=date)
-            book = book_record(id=book_id, title=title.text)
+            read_log = reading_log_record(book_id=book_id, user_id=user_id, read_date=date)
+            book = book_record(id=book_id, title=title.text, author_id=author_id)
             author = author_record(id=author_id, name=author.text)
             yield read_log, book, author
 
@@ -160,13 +161,16 @@ def run_fetch_logs(num_communities=5, start=1, force=False):
     for page in range(start, start + num_communities):
         logger.info(page)
         community_data = fetch_communities(page)
-        urls = [BASE_URL + "/" + community["path"] for community in community_data["resources"]]
+        urls = [BASE_URL + community["path"] for community in community_data["resources"]]
         user_id_arrays = Parallel(n_jobs=5, verbose=1)(delayed(fetch_users)(url) for url in urls)
         for arr in user_id_arrays:
             user_ids.extend(arr)
 
     user_ids = np.unique(user_ids)
     logger.info("total users: {}".format(len(user_ids)))
+
+    df_users = pd.DataFrame(data=dict(user_id=user_ids))
+    df_users.to_csv(os.path.join(OUTPUT_DIR, "user_id.tsv"), sep="\t", index=False)
 
     for user_id in tqdm(user_ids, total=len(user_ids)):
         output_dir = os.path.join(OUTPUT_DIR, user_id)
