@@ -11,11 +11,15 @@ anaconda3.4.3-0
 ## Requirement
 
 ```
-gensim
-numpy
+beautifulsoup4
 tqdm
+numpy
 pandas
+requests
 matplotlib
+joblib
+lxml
+gensim
 ```
 
 ## Usage
